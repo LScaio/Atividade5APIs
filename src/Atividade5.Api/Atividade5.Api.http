@@ -1,0 +1,68 @@
+# Arquivo de testes do Visual Studio 2022 (clique em "Send request" acima de cada requisição).
+# Execute na ordem: os tokens dos logins (3 e 4) são reaproveitados nas requisições seguintes.
+
+@baseUrl = http://localhost:5080
+
+### 1) Listar produtos - público (200)
+GET {{baseUrl}}/api/produtos
+
+### 2) Registrar usuário comum (201) - se já existir, retorna 409
+POST {{baseUrl}}/api/auth/registrar
+Content-Type: application/json
+
+{
+  "nome": "Maria Silva",
+  "email": "maria@teste.com",
+  "senha": "Senha@123"
+}
+
+### 3) Login do usuário comum (200)
+# @name loginUsuario
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "maria@teste.com",
+  "senha": "Senha@123"
+}
+
+### 4) Login do administrador (200)
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@atividade5.com",
+  "senha": "Admin@123"
+}
+
+### 5) Criar produto com usuário comum (201)
+# @name novoProduto
+POST {{baseUrl}}/api/produtos
+Authorization: Bearer {{loginUsuario.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "nome": "Monitor",
+  "descricao": "Monitor 24 polegadas",
+  "preco": 899.90,
+  "estoque": 5
+}
+
+### 6) Excluir SEM token (401 - não autenticado)
+DELETE {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}
+
+### 7) Excluir com usuário comum (403 - autenticado, mas sem permissão)
+DELETE {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}
+Authorization: Bearer {{loginUsuario.response.body.$.token}}
+
+### 8) Excluir com administrador (204 - permitido)
+DELETE {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
+
+### 9) Conferir que foi excluído (404)
+GET {{baseUrl}}/api/produtos/{{novoProduto.response.body.$.id}}
+
+### 10) Listar usuários - somente administrador (200)
+GET {{baseUrl}}/api/usuarios
+Authorization: Bearer {{loginAdmin.response.body.$.token}}
